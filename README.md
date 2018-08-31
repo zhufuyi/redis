@@ -1,2 +1,2 @@
 # redis
-在github.com/gomodule/redigo/redis基础上封装的redis客户端
+在[redigo](https://github.com/gomodule/redigo)基础上封装的go语言的redis客户端
