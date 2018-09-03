@@ -2,13 +2,10 @@ package redis
 
 import (
 	"fmt"
-
-	"github.com/zhufuyi/logger"
-
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"go.uber.org/zap"
+	"github.com/zhufuyi/logger"
 )
 
 // 当前应用允许最大连接数，最大不能超过redis极限连接数
@@ -60,14 +57,22 @@ func (d *DefaultRedisConn) Do(commandName string, args ...interface{}) (reply in
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
-			printError(err, "redis do error", commandName, args...)
+
+			logger.WithFields(
+				logger.Err(err),
+				logger.String("command", joinCommandAndArgs(commandName, args...)),
+			).Error("redis do error")
 		}
 		return result, err
 	}
 
 	if d.printLog {
 		d.printLog = false
-		printInfo(result, "redis do", commandName, args...)
+
+		logger.WithFields(
+			logger.String("command", joinCommandAndArgs(commandName, args...)),
+			anyField("result", result),
+		).Info("redis do success")
 	}
 
 	return result, err
@@ -79,14 +84,21 @@ func (d *DefaultRedisConn) Send(commandName string, args ...interface{}) error {
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
-			printError(err, "redis send error", commandName, args...)
+
+			logger.WithFields(
+				logger.Err(err),
+				logger.String("command", joinCommandAndArgs(commandName, args...)),
+			).Error("redis send error")
 		}
 		return err
 	}
 
 	if d.printLog {
 		d.printLog = false
-		printInfo(nil, "redis send", commandName, args...)
+
+		logger.WithFields(
+			logger.String("command", joinCommandAndArgs(commandName, args...)),
+		).Info("redis send success")
 	}
 
 	return err
@@ -98,9 +110,16 @@ func (d *DefaultRedisConn) Flush() error {
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
-			printError(err, "redis Flush error", "")
+
+			logger.WithFields(logger.Err(err)).Error("redis flush error")
 		}
 		return err
+	}
+
+	if d.printLog {
+		d.printLog = false
+
+		logger.WithFields().Info("redis flush success")
 	}
 
 	return nil
@@ -112,20 +131,22 @@ func (d *DefaultRedisConn) Receive() (reply interface{}, err error) {
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
-			printError(err, "redis receive error", "")
+
+			logger.WithFields(logger.Err(err)).Error("redis receive error")
 		}
 		return result, err
 	}
 
 	if d.printLog {
 		d.printLog = false
-		printInfo(result, "redis receive", "")
+
+		logger.WithFields(anyField("result", result)).Info("redis receive success")
 	}
 	return result, err
 }
 
 // 转换类型
-func anyField(key string, a interface{}) zap.Field {
+func anyField(key string, a interface{}) logger.Field {
 	switch a.(type) {
 	case []byte:
 		return logger.String(key, string(a.([]byte)))
@@ -147,37 +168,13 @@ func anyField(key string, a interface{}) zap.Field {
 	}
 }
 
-func printError(err error, msg string, commandName string, args ...interface{}) {
-	if commandName == "" {
-		logger.Error(msg, logger.Err(err))
-		return
-	}
-
-	logger.Error(msg,
-		logger.Err(err),
-		logger.String("commandName", commandName),
-		logger.Any("args", args),
-	)
-}
-
-func printInfo(result interface{}, msg string, commandName string, args ...interface{}) {
-	// commandName为空，说明打印receiver函数返回的结果
-	if commandName == "" {
-		logger.WithFields(anyField("result", result)).Info(msg)
-		return
-	}
-
+func joinCommandAndArgs(commandName string, args ...interface{}) string {
 	commandArgs := commandName
 	for _, arg := range args {
 		commandArgs += fmt.Sprintf(" %v", arg)
 	}
-	// result为空，说明打印send函数的命令和参数
-	if result == nil {
-		logger.WithFields(zap.String("command", commandArgs)).Info("redis send")
-	}
 
-	// 打印do函数的命令、参数、结果
-	logger.WithFields(zap.String("command", commandArgs), anyField("result", result)).Info("redis do")
+	return commandArgs
 }
 
 // NewRedisPool connect redis，if test ping failed，return error

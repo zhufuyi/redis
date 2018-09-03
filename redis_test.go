@@ -32,7 +32,7 @@ var cmds = []struct {
 
 	// 测试集合
 	{"SADD", []interface{}{"testSet", "zhangsan", "lisi", 100}, []string{"0"}},
-	{"SMEMBERS", []interface{}{"testSet"}, []string{"lisi", "zhangsan", "100"}},
+	{"SMEMBERS", []interface{}{"testSet"}, []string{"100", "zhangsan", "lisi"}},
 
 	// 测试有序集合
 	{"ZADD", []interface{}{"testZset", 28, "zhangsan", 24, "lisi", 26, "wangwu"}, []string{"0"}},
@@ -78,19 +78,19 @@ func TestSend_Flush_Receive(t *testing.T) {
 	defer rconn.Close()
 
 	for _, v := range cmds {
-		err := rconn.Send(v.Cmd, v.Args...)
+		err := rconn.WithLog().Send(v.Cmd, v.Args...)
 		if err != nil {
 			t.Errorf("redis send error, %v, %+v\n", err, v)
 			continue
 		}
 
-		err = rconn.Flush()
+		err = rconn.WithLog().Flush()
 		if err != nil {
 			t.Errorf("redis flush error, %v, %+v\n", err, v)
 			continue
 		}
 
-		result, err := rconn.Receive()
+		result, err := rconn.WithLog().Receive()
 		if err != nil {
 			t.Errorf("redis receive error, %v, %v\n", err, v)
 			continue
