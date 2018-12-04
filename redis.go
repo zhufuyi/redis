@@ -11,7 +11,7 @@ import (
 // 当前应用允许最大连接数，最大不能超过redis极限连接数
 // 如果多个项目共用同一个redis，要考虑每个项目限制连接数，防止过量连接造成redis卡死
 var maxActiveCount = 2800 // 经过压测得到大概结果
-
+var ErrNil = redis.ErrNil
 var pool *RedisPool
 
 // GetConn, 对redis操作前，先要调用此函数从redis连接池获取一个连接，要对结果做错误判断，防止获取nil的连接，然后对空指针操作造成panic
