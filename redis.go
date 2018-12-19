@@ -212,8 +212,8 @@ func NewRedisPool(server, password string) error {
 	return err
 }
 
-// NewRedisPool connect redis with no auth, if test ping failed，return error
-func NewRedisPoolNoAuth(server string) error {
+// NewRedisPoolWithNoAuth connect redis with no auth, if test ping failed，return error
+func NewRedisPoolWithNoAuth(server string) error {
 	pool = &RedisPool{
 		Pool: redis.Pool{
 			MaxIdle:     3,
