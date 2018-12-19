@@ -212,6 +212,36 @@ func NewRedisPool(server, password string) error {
 	return err
 }
 
+// NewRedisPool connect redis with no auth, if test ping failed，return error
+func NewRedisPoolNoAuth(server string) error {
+	pool = &RedisPool{
+		Pool: redis.Pool{
+			MaxIdle:     3,
+			IdleTimeout: 240 * time.Second,
+			Dial: func() (redis.Conn, error) {
+				c, err := redis.Dial("tcp", server)
+				if err != nil {
+					return nil, err
+				}
+
+				c.Do("select", 0)
+				return c, err
+			},
+
+			TestOnBorrow: func(c redis.Conn, t time.Time) error {
+				_, err := c.Do("PING")
+				return err
+			},
+		},
+	}
+
+	rconn, _ := GetConn()
+	defer rconn.Close()
+
+	_, err := rconn.Do("PING")
+	return err
+}
+
 // ----------------------- 重新包装函数 --------------------------
 
 func Int(reply interface{}, err error) (int, error) {
